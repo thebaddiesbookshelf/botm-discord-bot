@@ -522,10 +522,32 @@ async def roll_winner(interaction: discord.Interaction):
     )
 
 
+# ---------- tiny web server so Render sees an open port ----------
+
+async def _health(request):
+    return web.Response(text="BOTM bot is running ✅")
+
+async def start_web_server():
+    app = web.Application()
+    app.router.add_get("/", _health)
+
+    runner = web.AppRunner(app)
+    await runner.setup()
+
+    port = int(os.getenv("PORT", "10000"))  # Render provides PORT automatically
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+
 # ---------- run LAST ----------
 
-if __name__ == "__main__":
+async def main():
     if not TOKEN:
         raise RuntimeError("Missing DISCORD_TOKEN in .env")
-    bot.run(TOKEN)
+
+    # Start the web server first, then start the Discord bot
+    await start_web_server()
+    await bot.start(TOKEN)
+
+if __name__ == "__main__":
+    asyncio.run(main())
 
