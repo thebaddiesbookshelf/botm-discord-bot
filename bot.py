@@ -205,7 +205,7 @@ async def odds(interaction: discord.Interaction):
 
     if mine <= 0:
         await interaction.response.send_message(
-            "🎟️ You currently have **0** entries — if you think that’s wrong, please opena a ticker or ask **Angel**!",
+            "🎟️ You currently have **0** entries — if you think that’s wrong, please open a ticket or ask **Angel**!",
             ephemeral=True
         )
         return
@@ -550,4 +550,5 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
