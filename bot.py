@@ -2,6 +2,7 @@ import os
 import asyncio
 import random
 from datetime import datetime, timezone
+from aiohttp import web
 
 import aiosqlite
 import discord
@@ -527,3 +528,4 @@ if __name__ == "__main__":
     if not TOKEN:
         raise RuntimeError("Missing DISCORD_TOKEN in .env")
     bot.run(TOKEN)
+
