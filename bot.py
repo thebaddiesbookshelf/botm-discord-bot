@@ -3,9 +3,6 @@ import asyncio
 import random
 from datetime import datetime, timezone
 from aiohttp import web
-import pathlib
-import zipfile
-import io
 
 import aiosqlite
 import discord
@@ -20,6 +17,7 @@ GUILD_ID = int(os.getenv("GUILD_ID", "0"))
 
 DB_PATH = "bot.db"
 LEADERBOARD_SIZE = 5
+
 
 # ---------- time helpers ----------
 
@@ -328,7 +326,6 @@ async def give_bulk(
     interaction: discord.Interaction,
     amount: app_commands.Range[int, 1, 1000],
     user1: discord.Member,
-    reason: str = "",
     user2: discord.Member | None = None,
     user3: discord.Member | None = None,
     user4: discord.Member | None = None,
@@ -338,6 +335,7 @@ async def give_bulk(
     user8: discord.Member | None = None,
     user9: discord.Member | None = None,
     user10: discord.Member | None = None,
+    reason: str = "",
 ):
     users = [u for u in [user1, user2, user3, user4, user5, user6, user7, user8, user9, user10] if u is not None]
 
@@ -361,7 +359,7 @@ async def give_bulk(
         f"Amount each: **+{amount}**"
         f"{note}"
     )
-    await interaction.response.send_message(msg, ephemeral=False)
+    await interaction.response.send_message(msg, ephemeral=TRUE)
 
 
 @bot.tree.command(name="remove_bulk", description="Remove BOTM entries from multiple members at once.")
@@ -524,74 +522,32 @@ async def roll_winner(interaction: discord.Interaction):
     )
 
 
-# ---------- RECOVERY WEB SERVER (export bot.db) ----------
+# ---------- tiny web server so Render sees an open port ----------
 
 async def _health(request):
-    service_id = os.getenv("RENDER_SERVICE_ID", "unknown")
-    region = os.getenv("RENDER_REGION", "unknown")
-    external = os.getenv("RENDER_EXTERNAL_URL", "unknown")
-
-    return web.Response(
-        text=(
-            "WORK NOW ✅\n"
-            f"service_id={service_id}\n"
-            f"region={region}\n"
-            f"external_url={external}\n"
-            "Open /download-db to fetch bot.db\n"
-        )
-    )
-
-async def db_info(request):
-    p = pathlib.Path("bot.db")
-    if not p.exists():
-        return web.Response(text="bot.db not found in working directory.")
-    return web.Response(text=f"bot.db exists ✅ size={p.stat().st_size} bytes")
-
-async def download_db_zip(request):
-    p = pathlib.Path("bot.db")
-    if not p.exists():
-        return web.Response(text="bot.db not found in working directory.")
-
-    buf = io.BytesIO()
-    with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as z:
-        z.write(p, arcname="bot.db")
-    buf.seek(0)
-
-    return web.Response(
-        body=buf.read(),
-        headers={
-            "Content-Type": "application/zip",
-            "Content-Disposition": "attachment; filename=bot_db_backup.zip",
-        },
-    )
-
+    return web.Response(text="BOTM bot is running ✅")
 
 async def start_web_server():
     app = web.Application()
     app.router.add_get("/", _health)
-    app.router.add_get("/db-info", db_info)
-    app.router.add_get("/download-db-zip", download_db_zip)
-    app.router.add_get("/where", where_am_i)
 
     runner = web.AppRunner(app)
     await runner.setup()
 
-    port = int(os.getenv("PORT", "10000"))
+    port = int(os.getenv("PORT", "10000"))  # Render provides PORT automatically
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
-
 
 # ---------- run LAST ----------
 
 async def main():
-    print("RECOVERY MODE: starting web server only (no Discord).")
+    if not TOKEN:
+        raise RuntimeError("Missing DISCORD_TOKEN in .env")
+
+    # Start the web server first, then start the Discord bot
     await start_web_server()
-    while True:
-        await asyncio.sleep(3600)
+    await bot.start(TOKEN)
 
 if __name__ == "__main__":
     asyncio.run(main())
-
-
-
 
