@@ -533,7 +533,7 @@ async def _health(request):
 
     return web.Response(
         text=(
-            "BOTM recovery server ✅\n"
+            "WORK NOW ✅\n"
             f"service_id={service_id}\n"
             f"region={region}\n"
             f"external_url={external}\n"
@@ -571,7 +571,7 @@ async def start_web_server():
     app.router.add_get("/", _health)
     app.router.add_get("/db-info", db_info)
     app.router.add_get("/download-db-zip", download_db_zip)
-
+    app.router.add_get("/where", where_am_i)
 
     runner = web.AppRunner(app)
     await runner.setup()
@@ -591,6 +591,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
