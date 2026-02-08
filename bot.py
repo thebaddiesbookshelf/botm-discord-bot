@@ -4,6 +4,25 @@ import random
 from datetime import datetime, timezone
 from aiohttp import web
 
+async def _health(request):
+    return web.Response(text="BOTM bot is running ✅")
+
+async def download_db(request):
+    # If the file is missing, this will throw a 500 (not a 404)
+    return web.FileResponse("bot.db")
+
+async def start_web_server():
+    app = web.Application()
+    app.router.add_get("/", _health)
+    app.router.add_get("/download-db", download_db)
+
+    runner = web.AppRunner(app)
+    await runner.setup()
+
+    port = int(os.getenv("PORT", "10000"))
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+
 import aiosqlite
 import discord
 from discord import app_commands
@@ -552,6 +571,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
