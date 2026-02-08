@@ -537,18 +537,23 @@ async def start_web_server():
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
 
-# ---------- run LAST ----------
+# ---------- TEMP DB RECOVERY MODE ----------
 
 async def main():
-    if not TOKEN:
-        raise RuntimeError("Missing DISCORD_TOKEN in .env")
+    print("Starting in DB recovery mode...")
 
-    # Start the web server first, then start the Discord bot
-    await start_web_server()
-    await bot.start(TOKEN)
+    # Start ONLY the web server
+    if "start_web_server" in globals():
+        await start_web_server()
+
+    # Keep process alive forever
+    while True:
+        await asyncio.sleep(3600)
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+
 
 
 
