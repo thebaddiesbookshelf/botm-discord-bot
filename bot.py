@@ -176,16 +176,7 @@ GUILD_OBJ = discord.Object(id=GUILD_ID) if GUILD_ID else None
 @bot.event
 async def on_ready():
     await init_db()
-
-    # Fast sync to your server (good for testing / single-server usage)
-    if GUILD_OBJ:
-        bot.tree.copy_global_to(guild=GUILD_OBJ)
-        await bot.tree.sync(guild=GUILD_OBJ)
-    else:
-        await bot.tree.sync()
-
     print(f"Logged in as {bot.user} (ready)")
-
 
 # ---------- member commands (ephemeral) ----------
 
@@ -359,7 +350,7 @@ async def give_bulk(
         f"Amount each: **+{amount}**"
         f"{note}"
     )
-    await interaction.response.send_message(msg, ephemeral=TRUE)
+    await interaction.response.send_message(msg, ephemeral=True)
 
 
 @bot.tree.command(name="remove_bulk", description="Remove BOTM entries from multiple members at once.")
@@ -542,11 +533,23 @@ async def start_web_server():
 
 async def main():
     if not TOKEN:
-        raise RuntimeError("Missing DISCORD_TOKEN in .env")
+        raise RuntimeError("Missing DISCORD_TOKEN environment variable")
 
-    # Start the web server first, then start the Discord bot
+    # Start the web server first, then keep trying Discord with backoff
     await start_web_server()
-    await bot.start(TOKEN)
+
+    backoff = 60  # start at 60s
+    while True:
+        try:
+            await bot.start(TOKEN)
+        except discord.HTTPException as e:
+            # Covers 429s / Cloudflare HTML / temporary blocks
+            print(f"HTTPException during start: {e} — sleeping {backoff}s then retrying")
+            await asyncio.sleep(backoff)
+            backoff = min(backoff * 2, 1800)  # cap at 30 minutes
+        except Exception as e:
+            print(f"Fatal error during start: {e}")
+            raise
 
 if __name__ == "__main__":
     asyncio.run(main())
