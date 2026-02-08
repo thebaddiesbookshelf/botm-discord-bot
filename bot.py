@@ -3,6 +3,9 @@ import asyncio
 import random
 from datetime import datetime, timezone
 from aiohttp import web
+import pathlib
+import zipfile
+import io
 
 import aiosqlite
 import discord
@@ -17,39 +20,6 @@ GUILD_ID = int(os.getenv("GUILD_ID", "0"))
 
 DB_PATH = "bot.db"
 LEADERBOARD_SIZE = 5
-
-# ---------- RECOVERY WEB SERVER ----------
-
-async def _health(request):
-    service_id = os.getenv("RENDER_SERVICE_ID", "unknown")
-    region = os.getenv("RENDER_REGION", "unknown")
-    external = os.getenv("RENDER_EXTERNAL_URL", "unknown")
-
-    return web.Response(
-        text=(
-            "BOTM recovery server ✅\n"
-            f"service_id={service_id}\n"
-            f"region={region}\n"
-            f"external_url={external}\n"
-            "Try /download-db to fetch bot.db\n"
-        )
-    )
-
-async def download_db(request):
-    headers = {"Content-Disposition": "attachment; filename=bot.db"}
-    return web.FileResponse("bot.db", headers=headers)
-
-async def start_web_server():
-    app = web.Application()
-    app.router.add_get("/", _health)
-    app.router.add_get("/download-db", download_db)
-
-    runner = web.AppRunner(app)
-    await runner.setup()
-
-    port = int(os.getenv("PORT", "10000"))
-    site = web.TCPSite(runner, "0.0.0.0", port)
-    await site.start()
 
 # ---------- time helpers ----------
 
@@ -571,14 +541,37 @@ async def _health(request):
         )
     )
 
-async def download_db(request):
-    headers = {"Content-Disposition": "attachment; filename=bot.db"}
-    return web.FileResponse("bot.db", headers=headers)
+async def db_info(request):
+    p = pathlib.Path("bot.db")
+    if not p.exists():
+        return web.Response(text="bot.db not found in working directory.")
+    return web.Response(text=f"bot.db exists ✅ size={p.stat().st_size} bytes")
+
+async def download_db_zip(request):
+    p = pathlib.Path("bot.db")
+    if not p.exists():
+        return web.Response(text="bot.db not found in working directory.")
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as z:
+        z.write(p, arcname="bot.db")
+    buf.seek(0)
+
+    return web.Response(
+        body=buf.read(),
+        headers={
+            "Content-Type": "application/zip",
+            "Content-Disposition": "attachment; filename=bot_db_backup.zip",
+        },
+    )
+
 
 async def start_web_server():
     app = web.Application()
     app.router.add_get("/", _health)
-    app.router.add_get("/download-db", download_db)
+    app.router.add_get("/db-info", db_info)
+    app.router.add_get("/download-db-zip", download_db_zip)
+
 
     runner = web.AppRunner(app)
     await runner.setup()
@@ -598,5 +591,6 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
