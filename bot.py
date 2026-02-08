@@ -18,6 +18,38 @@ GUILD_ID = int(os.getenv("GUILD_ID", "0"))
 DB_PATH = "bot.db"
 LEADERBOARD_SIZE = 5
 
+# ---------- RECOVERY WEB SERVER ----------
+
+async def _health(request):
+    service_id = os.getenv("RENDER_SERVICE_ID", "unknown")
+    region = os.getenv("RENDER_REGION", "unknown")
+    external = os.getenv("RENDER_EXTERNAL_URL", "unknown")
+
+    return web.Response(
+        text=(
+            "BOTM recovery server ✅\n"
+            f"service_id={service_id}\n"
+            f"region={region}\n"
+            f"external_url={external}\n"
+            "Try /download-db to fetch bot.db\n"
+        )
+    )
+
+async def download_db(request):
+    headers = {"Content-Disposition": "attachment; filename=bot.db"}
+    return web.FileResponse("bot.db", headers=headers)
+
+async def start_web_server():
+    app = web.Application()
+    app.router.add_get("/", _health)
+    app.router.add_get("/download-db", download_db)
+
+    runner = web.AppRunner(app)
+    await runner.setup()
+
+    port = int(os.getenv("PORT", "10000"))
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
 
 # ---------- time helpers ----------
 
@@ -541,12 +573,10 @@ async def start_web_server():
 # ---------- run LAST ----------
 
 async def main():
-    if not TOKEN:
-        raise RuntimeError("Missing DISCORD_TOKEN in .env")
-
-    # Start the web server first, then start the Discord bot
+    print("RECOVERY MODE: starting web server only (no Discord).")
     await start_web_server()
-    await bot.start(TOKEN)
+    while True:
+        await asyncio.sleep(3600)
 
 if __name__ == "__main__":
     asyncio.run(main())
