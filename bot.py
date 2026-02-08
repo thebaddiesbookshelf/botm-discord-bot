@@ -4,25 +4,6 @@ import random
 from datetime import datetime, timezone
 from aiohttp import web
 
-async def _health(request):
-    return web.Response(text="BOTM bot is running ✅")
-
-async def download_db(request):
-    # If the file is missing, this will throw a 500 (not a 404)
-    return web.FileResponse("bot.db")
-
-async def start_web_server():
-    app = web.Application()
-    app.router.add_get("/", _health)
-    app.router.add_get("/download-db", download_db)
-
-    runner = web.AppRunner(app)
-    await runner.setup()
-
-    port = int(os.getenv("PORT", "10000"))
-    site = web.TCPSite(runner, "0.0.0.0", port)
-    await site.start()
-
 import aiosqlite
 import discord
 from discord import app_commands
@@ -195,7 +176,16 @@ GUILD_OBJ = discord.Object(id=GUILD_ID) if GUILD_ID else None
 @bot.event
 async def on_ready():
     await init_db()
+
+    # Fast sync to your server (good for testing / single-server usage)
+    if GUILD_OBJ:
+        bot.tree.copy_global_to(guild=GUILD_OBJ)
+        await bot.tree.sync(guild=GUILD_OBJ)
+    else:
+        await bot.tree.sync()
+
     print(f"Logged in as {bot.user} (ready)")
+
 
 # ---------- member commands (ephemeral) ----------
 
@@ -537,17 +527,9 @@ async def roll_winner(interaction: discord.Interaction):
 async def _health(request):
     return web.Response(text="BOTM bot is running ✅")
 
-async def download_db(request):
-    try:
-        return web.FileResponse("bot.db")
-    except Exception as e:
-        return web.Response(text=f"Error: {e}")
-
 async def start_web_server():
     app = web.Application()
     app.router.add_get("/", _health)
-    app.router.add_get("/download-db", download_db)
-
 
     runner = web.AppRunner(app)
     await runner.setup()
@@ -556,25 +538,16 @@ async def start_web_server():
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
 
-# ---------- TEMP DB RECOVERY MODE ----------
+# ---------- run LAST ----------
 
 async def main():
-    print("Starting in DB recovery mode...")
+    if not TOKEN:
+        raise RuntimeError("Missing DISCORD_TOKEN in .env")
 
-    # Start ONLY the web server
-    if "start_web_server" in globals():
-        await start_web_server()
-
-    # Keep process alive forever
-    while True:
-        await asyncio.sleep(3600)
+    # Start the web server first, then start the Discord bot
+    await start_web_server()
+    await bot.start(TOKEN)
 
 if __name__ == "__main__":
     asyncio.run(main())
-
-
-
-
-
-
 
