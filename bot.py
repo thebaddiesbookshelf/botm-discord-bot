@@ -176,16 +176,7 @@ GUILD_OBJ = discord.Object(id=GUILD_ID) if GUILD_ID else None
 @bot.event
 async def on_ready():
     await init_db()
-
-    # Fast sync to your server (good for testing / single-server usage)
-    if GUILD_OBJ:
-        bot.tree.copy_global_to(guild=GUILD_OBJ)
-        await bot.tree.sync(guild=GUILD_OBJ)
-    else:
-        await bot.tree.sync()
-
     print(f"Logged in as {bot.user} (ready)")
-
 
 # ---------- member commands (ephemeral) ----------
 
@@ -550,5 +541,6 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
