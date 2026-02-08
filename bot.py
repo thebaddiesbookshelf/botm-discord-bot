@@ -518,9 +518,17 @@ async def roll_winner(interaction: discord.Interaction):
 async def _health(request):
     return web.Response(text="BOTM bot is running ✅")
 
+async def download_db(request):
+    try:
+        return web.FileResponse("bot.db")
+    except Exception as e:
+        return web.Response(text=f"Error: {e}")
+
 async def start_web_server():
     app = web.Application()
     app.router.add_get("/", _health)
+    app.router.add_get("/download-db", download_db)
+
 
     runner = web.AppRunner(app)
     await runner.setup()
@@ -541,6 +549,7 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
 
