@@ -554,21 +554,39 @@ async def roll_winner(interaction: discord.Interaction):
     )
 
 
-# ---------- tiny web server so Render sees an open port ----------
+# ---------- RECOVERY WEB SERVER (export bot.db) ----------
 
 async def _health(request):
-    return web.Response(text="BOTM bot is running ✅")
+    service_id = os.getenv("RENDER_SERVICE_ID", "unknown")
+    region = os.getenv("RENDER_REGION", "unknown")
+    external = os.getenv("RENDER_EXTERNAL_URL", "unknown")
+
+    return web.Response(
+        text=(
+            "BOTM recovery server ✅\n"
+            f"service_id={service_id}\n"
+            f"region={region}\n"
+            f"external_url={external}\n"
+            "Open /download-db to fetch bot.db\n"
+        )
+    )
+
+async def download_db(request):
+    headers = {"Content-Disposition": "attachment; filename=bot.db"}
+    return web.FileResponse("bot.db", headers=headers)
 
 async def start_web_server():
     app = web.Application()
     app.router.add_get("/", _health)
+    app.router.add_get("/download-db", download_db)
 
     runner = web.AppRunner(app)
     await runner.setup()
 
-    port = int(os.getenv("PORT", "10000"))  # Render provides PORT automatically
+    port = int(os.getenv("PORT", "10000"))
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
+
 
 # ---------- run LAST ----------
 
@@ -580,4 +598,5 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
