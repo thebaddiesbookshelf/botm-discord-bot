@@ -350,7 +350,7 @@ async def give_bulk(
         f"Amount each: **+{amount}**"
         f"{note}"
     )
-    await interaction.response.send_message(msg, ephemeral=True)
+    await interaction.response.send_message(msg, ephemeral=False)
 
 
 @bot.tree.command(name="remove_bulk", description="Remove BOTM entries from multiple members at once.")
@@ -553,4 +553,5 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
