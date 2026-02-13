@@ -15,7 +15,7 @@ load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 GUILD_ID = int(os.getenv("GUILD_ID", "0"))
 
-DB_PATH = "bot.db"
+DB_PATH = "/var/data/bot.db"
 LEADERBOARD_SIZE = 5
 
 
@@ -350,7 +350,7 @@ async def give_bulk(
         f"Amount each: **+{amount}**"
         f"{note}"
     )
-    await interaction.response.send_message(msg, ephemeral=False)
+    await interaction.response.send_message(msg, ephemeral=True)
 
 
 @bot.tree.command(name="remove_bulk", description="Remove BOTM entries from multiple members at once.")
@@ -553,5 +553,6 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
+
 
 
